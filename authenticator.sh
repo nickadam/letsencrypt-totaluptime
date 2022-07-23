@@ -21,7 +21,7 @@ fi
 # Strip only the top domain to get the zone id
 DOMAIN=$(expr match "$CERTBOT_DOMAIN" '.*\.\(.*\..*\)')
 
-# Must be a wildcard
+# This must be a wildcard or top level domain
 test -z "$DOMAIN" && \
   DOMAIN="$CERTBOT_DOMAIN"
 
