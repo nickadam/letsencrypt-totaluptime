@@ -1,12 +1,14 @@
 #!/bin/bash
 
+TU_USERNAME=""
+TU_PASSWORD=""
 API_URL="https://api.totaluptime.com"
 
-# Check env vars
+# Check vars
 test -z "$TU_USERNAME" && \
-  echo "ERROR: Environment variable TU_USERNAME must be set" 1>&2 && exit 1
+  echo "ERROR: TU_USERNAME must be set" && exit 1
 test -z "$TU_PASSWORD" && \
-  echo "ERROR: Environment variable TU_PASSWORD must be set" 1>&2 && exit 1
+  echo "ERROR: TU_PASSWORD must be set" && exit 1
 
 # Check deps
 if ! which jq >/dev/null; then
