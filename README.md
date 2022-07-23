@@ -6,6 +6,23 @@ These scripts use Total Uptime's API to solve Let's Encrypt challenges by creati
 
 ## How to
 
+Create an API role in Total Uptime with the following permissions:
+- Dashboard, disabled
+- Networking, disabled
+- DNS, enabled
+  - Information, Read
+  - Domains, Read/Write/Create
+  - Failover Pools, disabled
+  - Geo zones, disabled
+  - Monitors, disabled
+  - Import/Export, disabled
+  - Zone transfers, disabled
+  - Reporting, disabled
+- Account, disabled
+- Modify password/2FA, disabled
+
+Create a user with your new role and "API Account" checked.
+
 [Install certbot](https://certbot.eff.org/instructions?ws=haproxy&os=ubuntufocal)
 
 ```sh
@@ -25,7 +42,7 @@ Download the scripts
 git clone https://github.com/nickadam/letsencrypt-totaluptime.git
 ```
 
-Edit the `authenticator.sh` and `cleanup.sh` scripts. Add your Total Uptime username and password to the top.
+Edit the `authenticator.sh` and `cleanup.sh` scripts. Add your Total Uptime API username and password to the top.
 
 Create certs
 
