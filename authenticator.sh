@@ -34,7 +34,7 @@ test "$ZONE_ID" == "null" && \
   echo "ERROR: Failed to retrieve domain id from Total Uptime API" && exit 1
 
 # Create TXT record
-DOMAIN_HOST=$(echo "$CERTBOT_DOMAIN" | sed "s/$CERTBOT_DOMAIN$//" | sed 's/\.$//')
+DOMAIN_HOST=$(echo "$CERTBOT_DOMAIN" | sed "s/$DOMAIN$//" | sed 's/\.$//')
 CREATE_DOMAIN="_acme-challenge.$DOMAIN_HOST"
 # Check if we are validating a wildcard domain
 test -z "$DOMAIN_HOST" && \
