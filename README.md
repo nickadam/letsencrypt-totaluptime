@@ -1,6 +1,6 @@
 # letsencrypt-totaluptime
 
-Certbot manual auth hooks for DNS validation with Total Uptime
+Certbot manual auth hooks for DNS validation with [Total Uptime](https://totaluptime.com/)
 
 These scripts use Total Uptime's API to solve Let's Encrypt challenges by creating `_acme-challenge` TXT records. [About validation hooks](https://eff-certbot.readthedocs.io/en/stable/using.html#pre-and-post-validation-hooks)
 
