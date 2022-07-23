@@ -71,4 +71,4 @@ echo $ZONE_ID > /tmp/CERTBOT_$CERTBOT_DOMAIN/ZONE_ID
 echo $RECORD_ID > /tmp/CERTBOT_$CERTBOT_DOMAIN/RECORD_ID
 
 # Sleep to make sure the change has time to propagate over to DNS
-sleep 120
+sleep 300
