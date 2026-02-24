@@ -1,7 +1,5 @@
 #!/bin/bash
 
-TU_USERNAME=""
-TU_PASSWORD=""
 API_URL="https://api.totaluptime.com"
 
 # Check vars
@@ -34,22 +32,20 @@ test "$ZONE_ID" == "null" && \
   echo "ERROR: Failed to retrieve domain id from Total Uptime API" && exit 1
 
 # Create TXT record
-DOMAIN_HOST=$(echo "$CERTBOT_DOMAIN" | sed "s/$DOMAIN$//" | sed 's/\.$//')
+# Strip wildcard prefix so *.hcpss.org is treated the same as hcpss.org
+EFFECTIVE_DOMAIN="$CERTBOT_DOMAIN"
+test "${CERTBOT_DOMAIN:0:2}" == "*." && \
+  EFFECTIVE_DOMAIN="${CERTBOT_DOMAIN:2}"
+DOMAIN_HOST=$(echo "$EFFECTIVE_DOMAIN" | sed "s/$DOMAIN$//" | sed 's/\.$//')
 CREATE_DOMAIN="_acme-challenge.$DOMAIN_HOST"
-# Check if we are validating a wildcard domain
+# Check if we are validating a wildcard or top level domain
 test -z "$DOMAIN_HOST" && \
   CREATE_DOMAIN="_acme-challenge"
 
-# Check if TXT record already exists
-QUERY_PARAMS="?searchField=txtHostName&searchString=$CREATE_DOMAIN&searchOper=eq"
-RECORD_ID=$(curl -s -u "$TU_USERNAME:$TU_PASSWORD" -X GET \
-  -H "Accept: application/json" \
-  "$API_URL/CloudDNS/Domain/$ZONE_ID/TXTRecord/All$QUERY_PARAMS" | jq -r '.rows[0].id')
-METHOD="PUT"
-test "$RECORD_ID" != "null" && \
-  RECORD_ID="/$RECORD_ID"
-test "$RECORD_ID" == "null" && \
-  RECORD_ID="" METHOD="POST"
+# Always POST a new record - when both a base domain and its wildcard are in
+# the same cert request, both tokens must coexist at the same DNS hostname
+RECORD_ID=""
+METHOD="POST"
 
 # Create or update the TXT record
 DATA="{\"txtHostName\":\"$CREATE_DOMAIN\",\"txtText\":\"$CERTBOT_VALIDATION\",\"txtTTL\":\"60\"}"
@@ -65,12 +61,5 @@ RECORD_ID=$(echo "$RESPONSE" | jq -r '.id')
 test "$RECORD_ID" == "null" && \
   echo "ERROR: Failed to get record id after setting TXT record $CREATE_DOMAIN" && exit 1
 
-# Save info for cleanup
-test ! -d /tmp/CERTBOT_$CERTBOT_DOMAIN && \
-  mkdir -m 0700 /tmp/CERTBOT_$CERTBOT_DOMAIN
-
-echo $ZONE_ID > /tmp/CERTBOT_$CERTBOT_DOMAIN/ZONE_ID
-echo $RECORD_ID > /tmp/CERTBOT_$CERTBOT_DOMAIN/RECORD_ID
-
 # Sleep to make sure the change has time to propagate over to DNS
-sleep 300
+sleep 60
