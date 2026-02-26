@@ -61,5 +61,49 @@ RECORD_ID=$(echo "$RESPONSE" | jq -r '.id')
 test "$RECORD_ID" == "null" && \
   echo "ERROR: Failed to get record id after setting TXT record $CREATE_DOMAIN" && exit 1
 
-# Sleep to make sure the change has time to propagate over to DNS
-sleep 60
+# Make sure the change propagates over DNS
+wait_for_dns_propagation() {
+  local fqdn="$1"
+  local acme_record="_acme-challenge.${fqdn}"
+
+  # Extract the base domain (last two labels)
+  local domain
+  domain=$(echo "$fqdn" | awk -F. '{print $(NF-1)"."$NF}')
+
+  echo "Waiting for TXT record at ${acme_record} to propagate..."
+  echo "Looking up NS records for ${domain}..."
+
+  # Get the list of nameservers
+  local nameservers
+  nameservers=$(dig +short NS "$domain" @8.8.8.8 | sed 's/\.$//')
+
+  if [[ -z "$nameservers" ]]; then
+    echo "ERROR: No NS records found for ${domain}" >&2
+    return 1
+  fi
+
+  echo "Found nameservers:"
+  echo "$nameservers" | sed 's/^/  /'
+  echo ""
+
+  for ns in $nameservers; do
+    echo "Checking ${ns}..."
+    while true; do
+      local result
+      result=$(dig +short TXT "${acme_record}" "@${ns}" 2>/dev/null)
+
+      if [[ -n "$result" ]]; then
+        echo "  ✔ ${ns} returned: ${result}"
+        break
+      else
+        echo "  ✘ No TXT record yet on ${ns}, retrying in 5s..."
+        sleep 5
+      fi
+    done
+  done
+
+  echo ""
+  echo "DNS propagation complete for ${acme_record}"
+}
+
+wait_for_dns_propagation "$DOMAIN_HOST.$DOMAIN"
