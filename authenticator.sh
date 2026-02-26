@@ -64,13 +64,20 @@ test "$RECORD_ID" == "null" && \
 # Make sure the change propagates over DNS
 wait_for_dns_propagation() {
   local fqdn="$1"
+  local expected="$2"
   local acme_record="_acme-challenge.${fqdn}"
+
+  if [[ -z "$fqdn" || -z "$expected" ]]; then
+    echo "Usage: wait_for_dns_propagation <hostname> <expected_txt_value>" >&2
+    return 1
+  fi
 
   # Extract the base domain (last two labels)
   local domain
   domain=$(echo "$fqdn" | awk -F. '{print $(NF-1)"."$NF}')
 
   echo "Waiting for TXT record at ${acme_record} to propagate..."
+  echo "Expected value: ${expected}"
   echo "Looking up NS records for ${domain}..."
 
   # Get the list of nameservers
@@ -89,14 +96,23 @@ wait_for_dns_propagation() {
   for ns in $nameservers; do
     echo "Checking ${ns}..."
     while true; do
-      local result
-      result=$(dig +short TXT "${acme_record}" "@${ns}" 2>/dev/null)
+      local found=false
 
-      if [[ -n "$result" ]]; then
-        echo "  ✔ ${ns} returned: ${result}"
+      # dig returns one TXT record per line, each wrapped in quotes
+      while IFS= read -r line; do
+        local value
+        value=$(echo "$line" | tr -d '"')
+        if [[ "$value" == "$expected" ]]; then
+          found=true
+          break
+        fi
+      done < <(dig +short TXT "${acme_record}" "@${ns}" 2>/dev/null)
+
+      if [[ "$found" == true ]]; then
+        echo "  ✔ ${ns} returned matching record"
         break
       else
-        echo "  ✘ No TXT record yet on ${ns}, retrying in 5s..."
+        echo "  ✘ No matching TXT record on ${ns}, retrying in 5s..."
         sleep 5
       fi
     done
@@ -106,4 +122,8 @@ wait_for_dns_propagation() {
   echo "DNS propagation complete for ${acme_record}"
 }
 
-wait_for_dns_propagation "$DOMAIN_HOST.$DOMAIN"
+if [ "$CREATE_DOMAIN" == "_acme-challenge" ]; then
+  wait_for_dns_propagation "$DOMAIN" "$CERTBOT_VALIDATION"
+else
+  wait_for_dns_propagation "$DOMAIN_HOST.$DOMAIN" "$CERTBOT_VALIDATION"
+fi
